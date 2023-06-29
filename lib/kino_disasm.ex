@@ -195,7 +195,11 @@ defmodule Kino.Disasm do
     ]
   end
 
-  defp span(body), do: span({[], body})
+  defp span(body) when is_binary(body), do: body
+  defp span(body) when is_list(body), do: body |> Enum.map(&span(&1))
+
+  defguardp is_register(i)
+            when is_tuple(i) and elem(i, 0) in ~w[x y f u]a and is_integer(elem(i, 1))
 
   defp fi({:label, _} = i), do: {~w[font-bold text-green-600], inspect(i)}
   defp fi({:line, _n} = i), do: {~w[text-slate-300], inspect(i)}
@@ -207,8 +211,27 @@ defmodule Kino.Disasm do
   defp fi({:f, _n} = i), do: {~w[text-green-600 font-bold], inspect(i)}
   defp fi({:u, _n} = i), do: {~w[text-blue-600 font-bold], inspect(i)}
 
-  # immedate values
+  # immediate values
   defp fi({type, _a} = i) when type in ~w[atom integer]a, do: {~w[text-purple-600], inspect(i)}
+
+  # multi line
+  defp fi({:list, []}) do
+    [
+      "{",
+      fi(:list),
+      ", []}"
+    ]
+  end
+
+  defp fi({:list, list}) when is_list(list) do
+    [
+      "{",
+      fi(:list),
+      ", [<ul>",
+      fi_list_elements(list),
+      "</ul>]}"
+    ]
+  end
 
   # format primitives
   defp fi(t) when is_tuple(t) do
@@ -263,5 +286,33 @@ defmodule Kino.Disasm do
 
   defp fi(f) when is_function(f) do
     {~w[text-yellow-500], inspect(f)}
+  end
+
+  defp fi_list_elements(list, acc \\ [])
+
+  defp fi_list_elements([], acc) do
+    acc
+    |> Enum.reverse()
+    |> Enum.intersperse(", ")
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn e ->
+      [
+        "<li class=\"ml-4\">",
+        e,
+        "</li>"
+      ]
+    end)
+  end
+
+  defp fi_list_elements([h, {:f, _} = f | t], acc) do
+    fi_list_elements(t, [[fi(h), ", ", fi(f)] | acc])
+  end
+
+  defp fi_list_elements([{:atom, _} = a, r | t], acc) when is_register(r) do
+    fi_list_elements(t, [[fi(a), ", ", fi(r)] | acc])
+  end
+
+  defp fi_list_elements([h | t], acc) do
+    fi_list_elements(t, [fi(h) | acc])
   end
 end

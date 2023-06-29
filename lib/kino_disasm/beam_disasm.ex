@@ -1,4 +1,4 @@
-defmodule Kino.BeamDisasm do
+defmodule Kino.Disasm.BeamDisasm do
   defstruct [:mod, :exports, :attributes, :compile_info, :functions]
 
   def new(mod) when is_atom(mod) do

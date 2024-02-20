@@ -260,6 +260,10 @@ defmodule Kino.Disasm do
     end
   end
 
+  defp fi(first..last//1), do: {~w[text-blue-400], [fi(first), "..", fi(last)]}
+
+  defp fi(first..last//step), do: {~w[text-blue-400], [fi(first), "..", fi(last), "//", fi(step)]}
+
   defp fi(m) when is_map(m) do
     elems =
       m

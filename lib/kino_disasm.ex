@@ -1,4 +1,4 @@
-defmodule Kino.Disasm do
+defmodule KinoDisasm do
   use Kino.JS
 
   def new(disasm, opts \\ []) do

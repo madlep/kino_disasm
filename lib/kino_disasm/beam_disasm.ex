@@ -1,4 +1,4 @@
-defmodule Kino.Disasm.BeamDisasm do
+defmodule KinoDisasm.BeamDisasm do
   @type t() :: %__MODULE__{
           mod: module(),
           exports: list(:beam_lib.labeled_entry()),

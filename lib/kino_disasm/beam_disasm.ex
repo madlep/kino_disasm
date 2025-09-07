@@ -16,6 +16,13 @@ defmodule KinoDisasm.BeamDisasm do
           code :: list(:beam_disasm.beam_instr())
         }
 
+  def new!(mod_or_binary) do
+    case new(mod_or_binary) do
+      {:ok, beam_disasm} -> beam_disasm
+      {:error, error} -> raise inspect(error)
+    end
+  end
+
   @spec new(module() | (code :: binary())) :: {:ok, t()} | {:error, reason :: binary()}
 
   def new(mod) when is_atom(mod) do

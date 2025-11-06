@@ -1,20 +1,41 @@
 defmodule KinoDisasm do
   use Kino.JS
 
-  def new(disasm, opts \\ []) do
+  def new(module, opts \\ [])
+
+  def new(mod, opts) when is_atom(mod) do
+    mod |> KinoDisasm.BeamDisasm.new!() |> new(opts)
+  end
+
+  def new(disasm, opts) when is_struct(disasm, KinoDisasm.BeamDisasm) do
     Kino.JS.new(__MODULE__, to_html(disasm, opts))
   end
 
+  @generated_functions ~w(__info__ module_info -inlined-__info__/1-)a
+
   def to_html(t, opts \\ []) do
+    included_functions = Keyword.get(opts, :functions, nil)
     include_generated_functions = Keyword.get(opts, :generated, false)
     include_extra_info = Keyword.get(opts, :extra_info, false)
 
+    function_list =
+      t.functions
+      |> Enum.map(fn {:function, name, arity, _label, _instructions} -> {name, arity} end)
+      |> Enum.filter(fn {name, arity} ->
+        cond do
+          name in @generated_functions && !include_generated_functions -> false
+          included_functions == nil -> true
+          {name, arity} in included_functions -> true
+          true -> false
+        end
+      end)
+
     [
       title(t),
-      exports(t, include_generated_functions, include_extra_info),
+      exports(t, function_list, include_extra_info),
       attributes(t, include_extra_info),
       compile_info(t, include_extra_info),
-      functions(t, include_generated_functions)
+      functions(t, function_list)
     ]
     |> IO.iodata_to_binary()
   end
@@ -36,15 +57,13 @@ defmodule KinoDisasm do
 
   defp exports(_, _, false), do: []
 
-  defp exports(%{exports: exports}, include_generated_functions, _include_extra_info) do
+  defp exports(%{exports: exports}, function_list, _include_extra_info) do
     div_class = "mb-8"
     h2_class = "font-mono font_bold text-2xl"
 
     exports_html =
       exports
-      |> Enum.filter(fn {name, _arity, _label} ->
-        include_function(name, include_generated_functions)
-      end)
+      |> Enum.filter(fn {name, arity, _label} -> {name, arity} in function_list end)
       |> Enum.map(fn {name, arity, _label} ->
         ["    <li><code>", name_arity(name, arity), "</code></li>\n"]
       end)
@@ -92,14 +111,14 @@ defmodule KinoDisasm do
     ]
   end
 
-  defp functions(%{functions: functions}, include_generated_functions) do
+  defp functions(%{functions: functions}, function_list) do
     div_class = "mb-8 w-max"
     class = "font-mono font_bold text-2xl"
 
     functions_html =
       functions
-      |> Enum.filter(fn {:function, name, _arity, _label, _instructions} ->
-        include_function(name, include_generated_functions)
+      |> Enum.filter(fn {:function, name, arity, _label, _instructions} ->
+        {name, arity} in function_list
       end)
       |> Enum.map(&function/1)
 
@@ -167,13 +186,6 @@ defmodule KinoDisasm do
 
   defp key_value(key, value), do: "#{to_string(key)}: #{inspect(value)}"
   defp name_arity(name, arity), do: "#{to_string(name)}/#{to_string(arity)}"
-  defp include_function(name, include_generated_functions)
-
-  defp include_function(name, false)
-       when name in ~w(__info__ module_info -inlined-__info__/1-)a,
-       do: false
-
-  defp include_function(_name, _), do: true
 
   defp format_instruction(i) do
     i

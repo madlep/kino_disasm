@@ -268,7 +268,7 @@ defmodule KinoDisasm do
     if String.starts_with?(a_string, "Elixir.") do
       {~w[text-emerald-500], String.replace_prefix(a_string, "Elixir.", "")}
     else
-      [":", a_string]
+      inspect(a)
     end
   end
 

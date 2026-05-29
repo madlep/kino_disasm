@@ -297,7 +297,7 @@ defmodule KinoDisasm do
   end
 
   defp fi(s) when is_binary(s) do
-    {~w[text-lime-400], <<?", s::binary, ?">>}
+    {~w[text-lime-400], inspect(s)}
   end
 
   defp fi(f) when is_function(f) do
